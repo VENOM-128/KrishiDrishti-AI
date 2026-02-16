@@ -189,6 +189,9 @@
                         <button onclick="switchTab('rotation')" id="tab-rotation"
                             class="px-3 py-5 text-sm font-medium text-gray-500 hover:text-primary transition-all hover:scale-105 dark:text-slate-400 dark:hover:text-cyan-400">Rotation
                             Plan</button>
+                        <button onclick="switchTab('disease')" id="tab-disease"
+                            class="px-3 py-5 text-sm font-medium text-gray-500 hover:text-primary transition-all hover:scale-105 dark:text-slate-400 dark:hover:text-cyan-400">Disease
+                            Detect</button>
                     </div>
 
                     <!-- Theme Toggle -->
@@ -224,6 +227,8 @@
             <button onclick="switchTab('rotation')"
                 class="block w-full text-left py-2 font-medium text-gray-700 dark:text-gray-300">Rotation
                 Plan</button>
+            <button onclick="switchTab('disease')"
+                class="block w-full text-left py-2 font-medium text-gray-700 dark:text-gray-300">Disease Detect</button>
         </div>
     </nav>
 
@@ -519,6 +524,203 @@
             </div>
         </section>
 
+        <!-- DISEASE DETECTION SECTION (New) -->
+        <section id="view-disease" class="hidden fade-in">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-white">AI Crop Disease Doctor</h1>
+                <p class="text-slate-500 mt-1 dark:text-slate-400">Upload a photo or select symptoms for instant diagnosis and treatment plans.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Input Panel -->
+                <div class="lg:col-span-4 space-y-6">
+                    <!-- Image Upload -->
+                    <div class="glass-panel p-6 rounded-2xl shadow-sm border border-slate-100 card-interactive">
+                        <h3 class="font-bold text-slate-800 mb-4 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-camera text-blue-500"></i> Visual Diagnosis
+                        </h3>
+                        <div class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center hover:bg-slate-50 dark:hover:bg-white/5 transition-colors relative group cursor-pointer" onclick="document.getElementById('diseaseImageInput').click()">
+                            <input type="file" id="diseaseImageInput" class="hidden" accept="image/*" onchange="previewDiseaseImage(event)">
+                            <div id="uploadPlaceholder">
+                                <div class="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                                </div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Click to upload leaf photo</p>
+                                <p class="text-xs text-slate-400 mt-1">Supports JPG, PNG</p>
+                            </div>
+                            <img id="diseaseImagePreview" class="hidden w-full h-48 object-cover rounded-lg shadow-md" />
+                            <button id="removeImageBtn" onclick="removeDiseaseImage(event)" class="hidden absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 shadow-lg transition-transform hover:scale-110">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Symptom Selector -->
+                    <div class="glass-panel p-6 rounded-2xl shadow-sm border border-slate-100 card-interactive">
+                        <h3 class="font-bold text-slate-800 mb-4 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-list text-green-500"></i> Symptom Checker
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1 dark:text-slate-300">Select Crop</label>
+                                <select id="diseaseCropSelect" class="w-full rounded-xl border-slate-200 border p-3 bg-slate-50 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-all dark:bg-black/40 dark:border-white/10 dark:text-white">
+                                    <option value="Wheat">Wheat</option>
+                                    <option value="Rice">Rice</option>
+                                    <option value="Potato">Potato</option>
+                                    <option value="Tomato">Tomato</option>
+                                    <option value="Cotton">Cotton</option>
+                                    <option value="Mustard">Mustard</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1 dark:text-slate-300">Observed Symptoms</label>
+                                <select id="diseaseSymptomSelect" class="w-full rounded-xl border-slate-200 border p-3 bg-slate-50 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-all dark:bg-black/40 dark:border-white/10 dark:text-white">
+                                    <option value="">-- Select Primary Symptom --</option>
+                                    <option value="yellowing">Yellowing Leaves</option>
+                                    <option value="spots">Brown/Black Spots</option>
+                                    <option value="wilting">Wilting / Drooping</option>
+                                    <option value="powder">White Powdery Coating</option>
+                                    <option value="rot">Stem/Root Rot</option>
+                                    <option value="curling">Leaf Curling</option>
+                                </select>
+                            </div>
+                            <button onclick="analyzeDisease()" class="w-full bg-gradient-to-r from-red-600 to-orange-600 text-white py-3.5 rounded-xl hover:shadow-lg hover:shadow-red-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98] font-bold tracking-wide flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-stethoscope"></i> Diagnose Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="lg:col-span-8">
+                    <!-- Loading State -->
+                    <div id="diseaseLoading" class="hidden h-full flex flex-col items-center justify-center p-12 glass-panel rounded-2xl">
+                        <div class="relative w-24 h-24 mb-6">
+                            <div class="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+                            <div class="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+                            <i class="fa-solid fa-brain absolute inset-0 flex items-center justify-center text-3xl text-blue-500 animate-pulse"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 dark:text-white">Analyzing Crop Health...</h3>
+                        <p class="text-slate-500 mt-2">Scanning for pathogens and deficiency markers.</p>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="diseaseEmpty" class="h-full flex flex-col items-center justify-center p-12 glass-panel rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10">
+                        <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4 text-slate-400">
+                            <i class="fa-solid fa-user-doctor text-4xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-slate-600 dark:text-slate-300">Ready for Diagnosis</h3>
+                        <p class="text-sm text-slate-400 max-w-xs text-center mt-1">Upload an image or select symptoms to get a detailed treatment plan.</p>
+                    </div>
+
+                    <!-- Result Content -->
+                    <div id="diseaseResult" class="hidden space-y-6 slide-up">
+                        <!-- Diagnosis Header -->
+                        <div class="glass-panel p-6 rounded-2xl border-l-8 border-red-500 shadow-sm">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase tracking-wider dark:bg-red-900/30 dark:text-red-400">Disease Detected</span>
+                                        <span class="text-sm text-slate-500 dark:text-slate-400"><i class="fa-solid fa-bullseye text-blue-500"></i> <span id="diseaseConfidence">0%</span> Confidence</span>
+                                    </div>
+                                    <h2 id="diseaseName" class="text-3xl font-bold text-slate-900 dark:text-white">Disease Name</h2>
+                                    <p id="diseaseCause" class="text-slate-600 dark:text-slate-300 mt-1">Caused by Fungal Infection</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-slate-500 dark:text-slate-400 mb-1">Severity Level</div>
+                                    <div id="diseaseSeverityBadge" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 font-bold border border-red-100 dark:bg-red-900/20 dark:border-red-800/30 dark:text-red-400">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> <span id="diseaseSeverity">High</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-white/10">
+                                <p class="text-sm font-bold text-slate-700 dark:text-slate-300">Potential Impact:</p>
+                                <p id="diseaseImpact" class="text-sm text-slate-600 dark:text-slate-400">Estimated yield loss of 20-40% if untreated within 7 days.</p>
+                            </div>
+                        </div>
+
+                        <!-- Treatment Plan -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Chemical Control -->
+                            <div class="glass-panel p-6 rounded-2xl border border-slate-100 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-full -mr-8 -mt-8"></div>
+                                <h3 class="font-bold text-slate-800 mb-4 dark:text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-flask text-blue-500"></i> Recommended Treatment
+                                </h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Fungicide / Pesticide</p>
+                                        <p id="diseaseChemical" class="font-bold text-lg text-blue-700 dark:text-blue-400">Chemical Name</p>
+                                    </div>
+                                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                                        <div class="flex justify-between mb-2">
+                                            <span class="text-sm text-slate-600 dark:text-slate-400">Dosage</span>
+                                            <span id="diseaseDosage" class="font-bold text-slate-800 dark:text-white">2g / Litre</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-sm text-slate-600 dark:text-slate-400">Frequency</span>
+                                            <span id="diseaseInterval" class="font-bold text-slate-800 dark:text-white">Every 7 Days</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Safety Precaution</p>
+                                        <p id="diseasePrecaution" class="text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2">
+                                            <i class="fa-solid fa-shield-halved text-green-500 mt-0.5"></i> <span>Wear mask and gloves. Avoid spraying during strong sunlight.</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Organic & Steps -->
+                            <div class="glass-panel p-6 rounded-2xl border border-slate-100">
+                                <h3 class="font-bold text-slate-800 mb-4 dark:text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-leaf text-green-500"></i> Organic & Application
+                                </h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Organic Alternative</p>
+                                        <p id="diseaseOrganic" class="font-medium text-green-700 dark:text-green-400">Neem Oil Spray</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase font-bold mb-2">Application Steps</p>
+                                        <ul id="diseaseSteps" class="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                                            <!-- Steps injected via JS -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="glass-panel p-6 rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">
+                            <h3 class="font-bold text-slate-800 mb-4 dark:text-white">Get Solutions</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button onclick="findNearbyVendors()" class="flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm group dark:bg-white/5 dark:border-white/10 dark:text-white dark:hover:border-blue-400 dark:hover:text-blue-400">
+                                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform dark:bg-blue-900/30">
+                                        <i class="fa-solid fa-store text-blue-600 dark:text-blue-400"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="font-bold text-sm">Find Local Vendors</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400">Locate pesticide shops nearby</div>
+                                    </div>
+                                </button>
+
+                                <button onclick="buyOnline()" class="flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-slate-200 rounded-xl hover:border-orange-500 hover:text-orange-600 transition-all shadow-sm group dark:bg-white/5 dark:border-white/10 dark:text-white dark:hover:border-orange-400 dark:hover:text-orange-400">
+                                    <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center group-hover:scale-110 transition-transform dark:bg-orange-900/30">
+                                        <i class="fa-solid fa-cart-shopping text-orange-600 dark:text-orange-400"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="font-bold text-sm">Buy Online</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400">Search Amazon / Flipkart</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- MARKET INTELLIGENCE SECTION -->
         <section id="view-market" class="hidden fade-in">
             <div class="mb-8">
@@ -527,52 +729,84 @@
                     selling timing.</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <!-- Controls -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 1. Forecast Settings (Left - 3 cols) -->
                 <div
-                    class="lg:col-span-1 glass-panel p-6 rounded-2xl shadow-sm border border-slate-100 h-fit card-interactive">
-                    <h3 class="font-bold text-slate-800 mb-4 text-lg dark:text-white">Forecast Settings</h3>
+                    class="lg:col-span-3 glass-panel p-5 rounded-2xl shadow-sm border border-slate-100 h-fit card-interactive">
+                    <h3 class="font-bold text-slate-800 mb-4 text-lg dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-primary"></i> Forecast Settings
+                    </h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1 dark:text-slate-300">Select
-                                Crop</label>
-                            <input list="marketCropOptions" id="marketCropSelect" onchange="updateMarketChart()"
-                                placeholder="Search or select crop..." value="Wheat"
-                                class="w-full rounded-xl border-slate-200 border p-3 bg-white focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none transition-all dark:bg-black/40 dark:border-white/10 dark:text-white dark:focus:ring-purple-500/50 dark:focus:border-purple-500">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">Crop Selection</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-wheat-awn absolute left-3 top-3.5 text-slate-400"></i>
+                                <input list="marketCropOptions" id="marketCropSelect" onchange="updateMarketChart()"
+                                    placeholder="Search crop..." value="Wheat"
+                                    class="w-full pl-10 pr-4 py-3 rounded-xl border-slate-200 border bg-slate-50 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-all dark:bg-black/40 dark:border-white/10 dark:text-white text-sm font-medium">
+                            </div>
                             <datalist id="marketCropOptions"></datalist>
                         </div>
+                        
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1 dark:text-slate-300">Mandi
-                                Region</label>
-                            <select id="mandiRegionSelect" onchange="updateMarketChart()"
-                                class="w-full rounded-xl border-slate-200 border p-3 bg-white focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none transition-all dark:bg-black/40 dark:border-white/10 dark:text-white dark:focus:ring-purple-500/50 dark:focus:border-purple-500">
-                                <option>Azadpur (Delhi)</option>
-                                <option>Vashi (Mumbai)</option>
-                                <option>Hapur (UP)</option>
-                            </select>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">Target Mandi</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-shop absolute left-3 top-3.5 text-slate-400"></i>
+                                <select id="mandiRegionSelect" onchange="updateMarketChart()"
+                                    class="w-full pl-10 pr-4 py-3 rounded-xl border-slate-200 border bg-slate-50 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-all dark:bg-black/40 dark:border-white/10 dark:text-white text-sm font-medium appearance-none">
+                                    <option disabled selected>Loading nearby mandis...</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down absolute right-3 top-3.5 text-slate-400 pointer-events-none text-xs"></i>
+                            </div>
                         </div>
-                        <div class="pt-4 border-t border-slate-100 dark:border-white/10">
+
+                        <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-sm text-slate-500 dark:text-slate-400">Current Price</span>
-                                <span class="font-bold text-xl text-slate-800 dark:text-white"
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Current Price</span>
+                                <span class="font-bold text-lg text-slate-800 dark:text-white"
                                     id="currentPriceDisplay">₹2,150</span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-sm text-slate-500 dark:text-slate-400">Predicted Peak</span>
-                                <span class="font-bold text-xl text-green-600" id="peakPriceDisplay">₹2,340</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Predicted Peak</span>
+                                <span class="font-bold text-lg text-green-600" id="peakPriceDisplay">₹2,340</span>
                             </div>
                         </div>
+                        
                         <button onclick="updateMarketChart()"
-                            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98] font-bold dark:from-purple-600 dark:to-indigo-600">
-                            Refresh Forecast
+                            class="w-full bg-slate-900 text-white py-3 rounded-xl hover:bg-slate-800 transition-all font-bold text-sm shadow-lg shadow-slate-900/20 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+                            Update Forecast
                         </button>
                     </div>
                 </div>
 
-                <!-- Main Chart -->
+                <!-- 2. Location Map (Middle - 4 cols) -->
                 <div
-                    class="lg:col-span-3 glass-panel p-6 rounded-2xl shadow-sm border border-slate-100 card-interactive">
-                    <div class="relative h-96 w-full">
+                    class="lg:col-span-4 glass-panel p-5 rounded-2xl shadow-sm border border-slate-100 h-fit card-interactive flex flex-col">
+                    <h3 class="font-bold text-slate-800 mb-4 text-lg dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-blue-500"></i> Nearby Mandis
+                    </h3>
+                    
+                    <!-- Mini Map -->
+                    <div id="mandiMiniMap" class="w-full h-48 rounded-xl bg-slate-100 dark:bg-slate-800 mb-4 border border-slate-200 dark:border-white/10 relative z-0"></div>
+                    
+                    <!-- List -->
+                    <div class="flex-1">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 dark:text-slate-400">Nearest Markets</h4>
+                        <div id="mandiListContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                            <!-- Items injected via JS -->
+                            <div class="text-center py-4 text-slate-400 text-sm">Loading location data...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Main Chart (Right - 5 cols) -->
+                <div
+                    class="lg:col-span-5 glass-panel p-5 rounded-2xl shadow-sm border border-slate-100 card-interactive flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg dark:text-white">Price Trend</h3>
+                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-lg dark:bg-green-900/30 dark:text-green-400">30 Days</span>
+                    </div>
+                    <div class="relative h-64 w-full flex-1">
                         <canvas id="marketMainChart"></canvas>
                     </div>
                 </div>
@@ -863,7 +1097,7 @@
         // --- Navigation Logic ---
         function switchTab(tabId) {
             console.log("Switching to tab:", tabId);
-            ['dashboard', 'spoilage', 'market', 'soil', 'rotation', 'predictions'].forEach(id => {
+            ['dashboard', 'spoilage', 'market', 'soil', 'rotation', 'predictions', 'disease'].forEach(id => {
                 const view = document.getElementById('view-' + id);
                 const tab = document.getElementById('tab-' + id);
 
@@ -911,6 +1145,11 @@
             
             if (tabId === 'rotation') {
                 generateRotationPlan();
+            }
+            
+            if (tabId === 'market') {
+                setTimeout(() => { if(mandiMiniMap) mandiMiniMap.invalidateSize(); }, 200);
+                initMandiMiniMap();
             }
 
             if (mobileMenu) mobileMenu.classList.add('hidden');
@@ -982,11 +1221,12 @@
         // Reverse geocode coordinates to address using Nominatim (OpenStreetMap)
         async function reverseGeocode(lat, lng) {
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
                 const data = await response.json();
 
                 if (data && data.display_name) {
                     userLocation.address = data.display_name;
+                    userLocation.state = data.address.state || data.address.region || data.address.county;
                     updateLocationDisplay();
                 }
             } catch (error) {
@@ -1061,7 +1301,7 @@
         // Search for location using Nominatim (OpenStreetMap)
         async function searchLocation(query) {
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`);
                 const data = await response.json();
 
                 if (data && data.length > 0) {
@@ -1069,6 +1309,7 @@
                     userLocation.lat = parseFloat(result.lat);
                     userLocation.lng = parseFloat(result.lon);
                     userLocation.address = result.display_name;
+                    userLocation.state = result.address.state || result.address.region || result.address.county;
 
                     if (map && marker) {
                         map.setView([userLocation.lat, userLocation.lng], 13);
@@ -1237,6 +1478,7 @@
             updateLocationDisplay();
             fetchLocationBasedSoilData();
             fetchWeatherData();
+            fetchNearbyMandis();
             toggleLocationMap();
 
             // Show success message
@@ -1608,6 +1850,254 @@
             }
         }
 
+        // --- Mandi Mini Map Logic ---
+        let mandiMiniMap = null;
+        let mandiLayerGroup = null;
+
+        function initMandiMiniMap() {
+            if (mandiMiniMap) return;
+            
+            const container = document.getElementById('mandiMiniMap');
+            if (!container) return;
+
+            mandiMiniMap = L.map('mandiMiniMap', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([userLocation.lat, userLocation.lng], 10);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19
+            }).addTo(mandiMiniMap);
+
+            mandiLayerGroup = L.layerGroup().addTo(mandiMiniMap);
+            
+            // Add user location marker
+            L.circleMarker([userLocation.lat, userLocation.lng], {
+                radius: 6,
+                fillColor: "#3b82f6",
+                color: "#fff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1
+            }).addTo(mandiMiniMap);
+        }
+
+        // Focus mini map on a specific mandi
+        function focusMandiOnMap(lat, lon, name) {
+            if (mandiMiniMap) {
+                mandiMiniMap.setView([lat, lon], 13);
+                if (mandiLayerGroup) {
+                    mandiLayerGroup.eachLayer(layer => {
+                        const lLat = layer.getLatLng().lat;
+                        const lLng = layer.getLatLng().lng;
+                        if (Math.abs(lLat - lat) < 0.0001 && Math.abs(lLng - lon) < 0.0001) {
+                            layer.openPopup();
+                        }
+                    });
+                }
+            }
+        }
+
+        // Fetch location-based Mandis using OpenStreetMap (Nominatim)
+        async function fetchNearbyMandis() {
+            const selectElement = document.getElementById('mandiRegionSelect');
+            if (!selectElement) return;
+            
+            // Show loading state if empty or just starting
+            if(selectElement.options.length === 0 || selectElement.value === 'Loading nearby mandis...') {
+                 selectElement.innerHTML = '<option disabled selected>Locating nearby mandis...</option>';
+            }
+            selectElement.disabled = true;
+            
+            // Init map if not already
+            initMandiMiniMap();
+
+            try {
+                // Ensure we have state information
+                let state = userLocation.state;
+                if (!state) {
+                    // Try to fetch state if missing
+                    const geoUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.lat}&lon=${userLocation.lng}&addressdetails=1`;
+                    const geoRes = await fetch(geoUrl);
+                    const geoData = await geoRes.json();
+                    if (geoData && geoData.address) {
+                        state = geoData.address.state || geoData.address.region;
+                        userLocation.state = state;
+                    }
+                }
+
+                let results = [];
+                
+                // 1. Search for "mandi" within the specific state (Broad search restricted to state)
+                if (state) {
+                    const stateSearchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=mandi+in+${encodeURIComponent(state)}&limit=50&addressdetails=1`;
+                    const stateRes = await fetch(stateSearchUrl);
+                    const stateData = await stateRes.json();
+                    results = stateData;
+                }
+
+                // 2. Fallback/Supplement: Local search if state search is sparse
+                if (results.length < 5) {
+                    const offset = 0.5; // ~50km
+                    const viewbox = `${userLocation.lng - offset},${userLocation.lat + offset},${userLocation.lng + offset},${userLocation.lat - offset}`;
+                    
+                    // Try "market" locally
+                    const localUrl = `https://nominatim.openstreetmap.org/search?format=json&q=market&limit=20&addressdetails=1&viewbox=${viewbox}&bounded=0`;
+                    const localRes = await fetch(localUrl);
+                    const localData = await localRes.json();
+                    
+                    const existingIds = new Set(results.map(r => r.osm_id));
+                    for (const item of localData) {
+                        if (!existingIds.has(item.osm_id)) {
+                            results.push(item);
+                            existingIds.add(item.osm_id);
+                        }
+                    }
+                }
+
+                // 3. Process Results: Calculate Distance & Filter
+                results.forEach(r => {
+                    r.distVal = parseFloat(calculateDistance(userLocation.lat, userLocation.lng, r.lat, r.lon));
+                });
+
+                // Filter: Must be in the same state (if state is known) OR very close (< 20km border areas)
+                if (state) {
+                    results = results.filter(r => {
+                        const rState = r.address.state || r.address.region || "";
+                        return rState.toLowerCase().includes(state.toLowerCase()) || r.distVal < 20;
+                    });
+                }
+
+                // Sort by distance
+                results.sort((a, b) => a.distVal - b.distVal);
+                
+                // Limit to nearest 20
+                results = results.slice(0, 20);
+
+                // Clear loading
+                selectElement.innerHTML = '';
+                
+                // Clear Map Layers & List
+                if (mandiLayerGroup) mandiLayerGroup.clearLayers();
+                const listContainer = document.getElementById('mandiListContainer');
+                if (listContainer) listContainer.innerHTML = '';
+
+                let bounds = L.latLngBounds([userLocation.lat, userLocation.lng], [userLocation.lat, userLocation.lng]);
+
+                if (results.length > 0) {
+                    results.forEach((mandi, index) => {
+                        let name = mandi.name || mandi.display_name.split(',')[0];
+                        name = name.replace(/mandi/gi, 'Mandi').replace(/market/gi, 'Market');
+
+                        // Add city context if name is generic
+                        if (name.toLowerCase().includes('market') || name.toLowerCase().includes('mandi')) {
+                            const city = mandi.address.city || mandi.address.town || mandi.address.county || mandi.address.state_district;
+                            if (city && !name.includes(city)) {
+                                name = `${name} (${city})`;
+                            }
+                        }
+                        
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.text = `${name} (${mandi.distVal} km)`;
+                        option.setAttribute('data-lat', mandi.lat);
+                        option.setAttribute('data-lon', mandi.lon);
+                        if (index === 0) option.selected = true;
+                        selectElement.appendChild(option);
+
+                        // Add to Map
+                        if (mandiLayerGroup) {
+                            const lat = parseFloat(mandi.lat);
+                            const lon = parseFloat(mandi.lon);
+                            L.circleMarker([lat, lon], {
+                                radius: 6,
+                                fillColor: "#ef4444",
+                                color: "#fff",
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(mandiLayerGroup).bindPopup(`<b class="text-slate-900">${name}</b><br><span class="text-xs text-slate-500">${mandi.distVal} km away</span>`);
+                            bounds.extend([lat, lon]);
+                        }
+
+                        // Add to List
+                        if (listContainer) {
+                            const item = document.createElement('div');
+                            item.className = "p-3 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-100 transition-colors cursor-pointer group dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10";
+                            item.onclick = () => focusMandiOnMap(parseFloat(mandi.lat), parseFloat(mandi.lon), name);
+                            
+                            item.innerHTML = `
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h5 class="font-bold text-slate-800 text-xs dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1" title="${name}">${name}</h5>
+                                        <p class="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">${mandi.address.city || mandi.address.county || mandi.address.state_district || ""}</p>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded dark:bg-blue-900/30 dark:text-blue-400 whitespace-nowrap">${mandi.distVal} km</span>
+                                </div>
+                            `;
+                            listContainer.appendChild(item);
+                        }
+                    });
+                } else {
+                    const city = userLocation.address.split(',')[0] || "Local";
+                    const option = document.createElement('option');
+                    option.value = `${city} Mandi`;
+                    option.text = `${city} Mandi (Est.)`;
+                    option.selected = true;
+                    selectElement.appendChild(option);
+                    
+                    if (listContainer) {
+                        listContainer.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">No specific mandis found nearby.</div>';
+                    }
+                }
+
+                // Add benchmarks
+                const benchmarks = ["Azadpur (Delhi)", "Vashi (Mumbai)", "Hapur (UP)"];
+                if (results.length > 0) {
+                     const separator = document.createElement('option');
+                     separator.disabled = true;
+                     separator.text = "──────────";
+                     selectElement.appendChild(separator);
+                }
+                benchmarks.forEach(bm => {
+                    const option = document.createElement('option');
+                    option.value = bm;
+                    option.text = bm;
+                    selectElement.appendChild(option);
+                });
+                
+                selectElement.disabled = false;
+                updateMarketChart();
+                
+                if (mandiMiniMap && results.length > 0) {
+                    mandiMiniMap.fitBounds(bounds, { padding: [20, 20] });
+                }
+
+            } catch (error) {
+                console.error('Error fetching mandis:', error);
+                selectElement.innerHTML = '<option>Azadpur (Delhi)</option><option>Vashi (Mumbai)</option><option>Hapur (UP)</option>';
+                selectElement.disabled = false;
+                updateMarketChart();
+            }
+        }
+
+        // Open map for selected mandi
+        function viewMandiLocation() {
+            const select = document.getElementById('mandiRegionSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption && !selectedOption.disabled) {
+                const lat = selectedOption.getAttribute('data-lat');
+                const lon = selectedOption.getAttribute('data-lon');
+                
+                if (lat && lon) {
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`, '_blank');
+                } else {
+                    alert('Location coordinates not available for this mandi.');
+                }
+            }
+        }
+
         // --- Spoilage Prediction Logic ---
         function predictSpoilage(e) {
             e.preventDefault();
@@ -1874,6 +2364,245 @@
                     el.classList.remove('fade-in');
                 }
             }
+        }
+
+        // --- Disease Detection Logic ---
+        
+        let model = null;
+
+        // Initialize TensorFlow Model
+        async function loadModel() {
+            try {
+                // In a production app, load from a URL:
+                // model = await tf.loadLayersModel('path/to/model.json');
+                
+                // For this demo, we create a simple model on the fly to ensure the pipeline works
+                model = tf.sequential();
+                model.add(tf.layers.conv2d({ inputShape: [224, 224, 3], kernelSize: 3, filters: 16, activation: 'relu' }));
+                model.add(tf.layers.globalAveragePooling2d({}));
+                model.add(tf.layers.dense({ units: 4, activation: 'softmax' }));
+                
+                console.log("✅ AI Model loaded successfully (Simulated)");
+            } catch (error) {
+                console.error("❌ Model loading failed:", error);
+            }
+        }
+
+        // Mock Database of Diseases
+        const diseaseDatabase = {
+            'Wheat': {
+                'yellowing': {
+                    name: 'Yellow Rust',
+                    confidence: '94%',
+                    cause: 'Fungal Infection (Puccinia striiformis)',
+                    severity: 'High',
+                    impact: '30-50% yield loss if untreated. Spreads rapidly in cool, moist conditions.',
+                    chemical: 'Propiconazole 25% EC',
+                    dosage: '1ml per Litre',
+                    interval: '15 Days',
+                    precaution: 'Wear protective gear. Do not spray if rain is expected within 4 hours.',
+                    organic: 'Neem Oil (3%) spray',
+                    steps: ['Isolate affected area if possible.', 'Mix fungicide thoroughly in water.', 'Spray uniformly on leaves.', 'Repeat after 15 days if symptoms persist.']
+                },
+                'spots': {
+                    name: 'Karnal Bunt',
+                    confidence: '88%',
+                    cause: 'Fungal (Tilletia indica)',
+                    severity: 'Medium',
+                    impact: 'Reduces grain quality and market value.',
+                    chemical: 'Carbendazim 50 WP',
+                    dosage: '2g per Litre',
+                    interval: '10 Days',
+                    precaution: 'Avoid inhalation. Store in cool dry place.',
+                    organic: 'Trichoderma viride',
+                    steps: ['Seed treatment before sowing is best.', 'Foliar spray at ear emergence.', 'Remove infected ears manually.']
+                }
+            },
+            'Rice': {
+                'spots': {
+                    name: 'Brown Spot',
+                    confidence: '91%',
+                    cause: 'Fungal (Bipolaris oryzae)',
+                    severity: 'Medium',
+                    impact: 'Causes grain discoloration and reduced weight.',
+                    chemical: 'Mancozeb 75 WP',
+                    dosage: '2.5g per Litre',
+                    interval: '10-12 Days',
+                    precaution: 'Do not mix with alkaline substances.',
+                    organic: 'Pseudomonas fluorescens',
+                    steps: ['Improve soil fertility (Potash).', 'Spray fungicide at tillering stage.', 'Ensure proper water drainage.']
+                },
+                'wilting': {
+                    name: 'Bacterial Leaf Blight',
+                    confidence: '89%',
+                    cause: 'Bacterial (Xanthomonas oryzae)',
+                    severity: 'High',
+                    impact: 'Severe wilting and drying of leaves. Can destroy 60% of crop.',
+                    chemical: 'Streptocycline + Copper Oxychloride',
+                    dosage: '0.1g + 1g per Litre',
+                    interval: '7 Days',
+                    precaution: 'Use gloves. Highly antibiotic.',
+                    organic: 'Cow dung slurry spray',
+                    steps: ['Drain standing water from field.', 'Apply Nitrogen in splits.', 'Spray bactericide immediately.']
+                }
+            },
+            'Potato': {
+                'spots': {
+                    name: 'Late Blight',
+                    confidence: '96%',
+                    cause: 'Oomycete (Phytophthora infestans)',
+                    severity: 'Critical',
+                    impact: 'Rapid decay of leaves and tubers. Total crop failure possible.',
+                    chemical: 'Metalaxyl + Mancozeb',
+                    dosage: '2.5g per Litre',
+                    interval: '7 Days',
+                    precaution: 'Harvest only after vines are completely dead.',
+                    organic: 'Copper-based fungicides',
+                    steps: ['Monitor weather (high humidity triggers it).', 'Prophylactic spray recommended.', 'Destroy infected tubers.']
+                }
+            }
+        };
+
+        function previewDiseaseImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('diseaseImagePreview').src = e.target.result;
+                    document.getElementById('diseaseImagePreview').classList.remove('hidden');
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    document.getElementById('removeImageBtn').classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeDiseaseImage(event) {
+            event.stopPropagation();
+            document.getElementById('diseaseImageInput').value = '';
+            document.getElementById('diseaseImagePreview').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            document.getElementById('removeImageBtn').classList.add('hidden');
+        }
+
+        async function analyzeDisease() {
+            const crop = document.getElementById('diseaseCropSelect').value;
+            const symptom = document.getElementById('diseaseSymptomSelect').value;
+            const imageInput = document.getElementById('diseaseImageInput');
+            const hasImage = imageInput.files.length > 0;
+
+            // UI State Management
+            document.getElementById('diseaseEmpty').classList.add('hidden');
+            document.getElementById('diseaseResult').classList.add('hidden');
+            document.getElementById('diseaseLoading').classList.remove('hidden');
+
+            try {
+                let result = null;
+
+                // AI Prediction Pipeline
+                if (hasImage && model) {
+                    console.log("🚀 Starting AI Prediction Pipeline...");
+                    const imgEl = document.getElementById('diseaseImagePreview');
+
+                    // 1. Preprocessing
+                    const tensor = tf.tidy(() => {
+                        // Convert DOM image to Tensor
+                        let t = tf.browser.fromPixels(imgEl);
+                        console.log("📸 Raw Image Shape:", t.shape);
+
+                        // Resize to Model Input Shape (e.g., 224x224)
+                        t = tf.image.resizeBilinear(t, [224, 224]);
+                        console.log("📏 Resized Shape:", t.shape);
+
+                        // Normalize Pixel Values (0-255 -> 0-1)
+                        t = t.toFloat().div(tf.scalar(255.0));
+
+                        // Add Batch Dimension ([224,224,3] -> [1,224,224,3])
+                        t = t.expandDims(0);
+                        console.log("📦 Batch Input Shape:", t.shape);
+                        return t;
+                    });
+
+                    // 2. Prediction
+                    const predictions = await model.predict(tensor).data();
+                    tensor.dispose(); // Cleanup memory
+
+                    console.log("📊 Raw Prediction Probabilities:", predictions);
+
+                    // 3. Post-processing
+                    const maxProb = Math.max(...predictions);
+                    const classIndex = predictions.indexOf(maxProb);
+                    console.log("🎯 Predicted Class Index:", classIndex);
+
+                    // Map Index to Disease (Mock Mapping for Demo)
+                    // In real app, this matches model.json labels
+                    const classMap = [
+                        { c: 'Wheat', s: 'yellowing' },
+                        { c: 'Wheat', s: 'spots' },
+                        { c: 'Rice', s: 'wilting' },
+                        { c: 'Potato', s: 'spots' }
+                    ];
+                    
+                    const mapped = classMap[classIndex] || classMap[0];
+                    if (diseaseDatabase[mapped.c] && diseaseDatabase[mapped.c][mapped.s]) {
+                        result = diseaseDatabase[mapped.c][mapped.s];
+                        result.confidence = (maxProb * 100).toFixed(1) + '%';
+                    }
+                }
+
+                // Fallback Logic (if no image or model issue)
+                if (!result) {
+                    console.warn("⚠️ Using fallback logic (No image or model unavailable)");
+                    if (diseaseDatabase[crop] && diseaseDatabase[crop][symptom]) {
+                        result = diseaseDatabase[crop][symptom];
+                    } else if (diseaseDatabase[crop]) {
+                        const keys = Object.keys(diseaseDatabase[crop]);
+                        result = diseaseDatabase[crop][keys[0]];
+                    } else {
+                        result = diseaseDatabase['Wheat']['yellowing'];
+                    }
+                }
+
+                // Render Results
+                document.getElementById('diseaseName').innerText = result.name;
+                document.getElementById('diseaseConfidence').innerText = result.confidence;
+                document.getElementById('diseaseCause').innerText = result.cause;
+                document.getElementById('diseaseSeverity').innerText = result.severity;
+                document.getElementById('diseaseImpact').innerText = result.impact;
+                document.getElementById('diseaseChemical').innerText = result.chemical;
+                document.getElementById('diseaseDosage').innerText = result.dosage;
+                document.getElementById('diseaseInterval').innerText = result.interval;
+                document.getElementById('diseasePrecaution').innerHTML = `<i class="fa-solid fa-shield-halved text-green-500 mt-0.5"></i> <span>${result.precaution}</span>`;
+                document.getElementById('diseaseOrganic').innerText = result.organic;
+                
+                document.getElementById('diseaseSteps').innerHTML = result.steps.map((step, i) => `
+                    <li class="flex gap-2"><span class="font-bold text-slate-400">${i+1}.</span><span>${step}</span></li>
+                `).join('');
+
+                document.getElementById('diseaseLoading').classList.add('hidden');
+                document.getElementById('diseaseResult').classList.remove('hidden');
+                document.getElementById('diseaseResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            } catch (error) {
+                console.error("❌ Prediction Error:", error);
+                document.getElementById('diseaseLoading').classList.add('hidden');
+                alert("Error analyzing image. Please try again.");
+            }
+        }
+
+        function findNearbyVendors() {
+            const query = "pesticide shop near me";
+            if (userLocation.lat && userLocation.lng) {
+                window.open(`https://www.google.com/maps/search/${query}/@${userLocation.lat},${userLocation.lng},13z`, '_blank');
+            } else {
+                window.open(`https://www.google.com/maps/search/${query}`, '_blank');
+            }
+        }
+
+        function buyOnline() {
+            const chemical = document.getElementById('diseaseChemical').innerText;
+            const query = encodeURIComponent(chemical + " fungicide");
+            window.open(`https://www.amazon.in/s?k=${query}`, '_blank');
         }
 
         // --- Market Chart Logic ---
@@ -2294,11 +3023,13 @@
             });
 
             // Init Market Module Chart
-            updateMarketChart();
+            // updateMarketChart(); // Called by fetchNearbyMandis
 
             // Fetch initial data for default location
             fetchLocationBasedSoilData();
             fetchWeatherData();
+            fetchNearbyMandis();
+            loadModel(); // Load AI Model
         });
 
         function updateChartsTheme() {
