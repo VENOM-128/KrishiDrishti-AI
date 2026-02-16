@@ -1795,8 +1795,8 @@
         // Fetch live weather data (Temperature & Humidity)
         async function fetchWeatherData() {
             try {
-                // Backend Proxy
-                const response = await fetch(`/api/weather?lat=${userLocation.lat}&lng=${userLocation.lng}`);
+                // Open-Meteo API (Free, No Key)
+                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${userLocation.lat}&longitude=${userLocation.lng}&current=temperature_2m,relative_humidity_2m`);
                 const data = await response.json();
 
                 if (data && data.current) {
@@ -2260,14 +2260,13 @@
         }
 
         // --- Spoilage Prediction Logic ---
-        async function predictSpoilage(event) {
-            event.preventDefault();
+        function predictSpoilage(e) {
+            e.preventDefault();
 
-            // Get values
-            const temp = document.getElementById('tempInput').value;
-            const humidity = document.getElementById('humidityInput').value;
-            const days = document.getElementById('durationInput').value;
             const cropType = document.getElementById('cropType').value.trim();
+            const temp = parseFloat(document.getElementById('tempInput').value);
+            const humidity = parseFloat(document.getElementById('humidityInput').value);
+            const days = parseInt(document.getElementById('durationInput').value);
 
             // Validate crop type is not empty
             if (!cropType) {
@@ -2276,53 +2275,45 @@
                 return;
             }
 
-            // CALL YOUR NEW BACKEND
-            try {
-                const response = await fetch('/api/predict-spoilage', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ temp, humidity, days })
-                });
+            // Heuristic Model (Client-side calculation)
+            let risk = (temp * 0.8) + (humidity * 0.5) + (days * 1.5);
+            risk = Math.min(Math.max(risk - 20, 5), 99);
 
-                const data = await response.json();
+            const isHighRisk = risk > 50;
+            const colorClass = isHighRisk ? 'text-red-600' : 'text-green-600';
+            const bgClass = isHighRisk ? 'bg-red-50 dark:bg-red-500/10' : 'bg-green-50 dark:bg-emerald-500/10';
+            const icon = isHighRisk ? '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>' : '<i class="fa-solid fa-circle-check text-green-500"></i>';
 
-                // Update UI with result from server
-                const isHighRisk = data.isHighRisk;
-                const risk = data.risk;
-                const colorClass = isHighRisk ? 'text-red-600' : 'text-green-600';
-                const bgClass = isHighRisk ? 'bg-red-50 dark:bg-red-500/10' : 'bg-green-50 dark:bg-emerald-500/10';
-                const icon = isHighRisk ? '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>' : '<i class="fa-solid fa-circle-check text-green-500"></i>';
-
-                const resDiv = document.getElementById('predictionResult');
-                resDiv.innerHTML = `
-                    <div class="${bgClass} w-full h-full rounded-2xl flex flex-col justify-center items-center relative overflow-hidden fade-in px-4 border border-white/10">
-                        <div class="absolute top-4 right-4 text-2xl">${icon}</div>
-                        <p class="text-slate-500 font-medium mb-1 dark:text-slate-400">Spoilage Probability</p>
-                        <h2 class="text-6xl font-extrabold ${colorClass} mb-2 tracking-tight">${risk.toFixed(1)}%</h2>
-                        <p class="text-sm text-slate-500 mb-4 dark:text-slate-400">Safe Storage Window: <span class="font-bold text-slate-800 dark:text-white">${data.recommendation.includes('days') ? data.recommendation.match(/(\d+) more days/)?.[1] + ' Days' : 'Immediate Action'}</span></p>
-                        
-                        <div class="w-full max-w-xs bg-white/50 dark:bg-white/10 rounded-full h-2">
-                            <div class="${isHighRisk ? 'bg-red-500' : 'bg-green-500'} h-2 rounded-full transition-all duration-1000" style="width: ${risk}%"></div>
-                        </div>
+            const resDiv = document.getElementById('predictionResult');
+            resDiv.innerHTML = `
+                <div class="${bgClass} w-full h-full rounded-2xl flex flex-col justify-center items-center relative overflow-hidden fade-in px-4 border border-white/10">
+                    <div class="absolute top-4 right-4 text-2xl">${icon}</div>
+                    <p class="text-slate-500 font-medium mb-1 dark:text-slate-400">Spoilage Probability</p>
+                    <h2 class="text-6xl font-extrabold ${colorClass} mb-2 tracking-tight">${risk.toFixed(1)}%</h2>
+                    <p class="text-sm text-slate-500 mb-4 dark:text-slate-400">Safe Storage Window: <span class="font-bold text-slate-800 dark:text-white">${Math.max(0, 30 - (temp / 2)).toFixed(0)} Days</span></p>
+                    
+                    <div class="w-full max-w-xs bg-white/50 dark:bg-white/10 rounded-full h-2">
+                        <div class="${isHighRisk ? 'bg-red-500' : 'bg-green-500'} h-2 rounded-full transition-all duration-1000" style="width: ${risk}%"></div>
                     </div>
-                `;
-                resDiv.classList.remove('border-2', 'border-dashed', 'p-12');
-                resDiv.classList.add('p-0', 'border-0');
+                </div>
+            `;
+            resDiv.classList.remove('border-2', 'border-dashed', 'p-12');
+            resDiv.classList.add('p-0', 'border-0');
 
-                // Show the AI recommendation card
-                document.getElementById('aiRecommendation').classList.remove('hidden');
-                document.getElementById('recText').innerText = data.recommendation;
+            // Recommendation
+            const recText = isHighRisk
+                ? `Critical humidity levels detected. Recommend reducing storage temp to ${(temp - 5).toFixed(1)}°C or selling stock within 3 days.`
+                : `Conditions are optimal. You can safely store this batch for the next 2-3 weeks to wait for better market prices.`;
 
-                // Update Dashboard Spoilage Risk Card (Simplified for now)
-                const dashRisk = document.getElementById('dashSpoilageRisk');
-                if (dashRisk) {
-                    dashRisk.textContent = isHighRisk ? 'High' : 'Low';
-                    dashRisk.className = `text-3xl font-bold mt-2 ${isHighRisk ? 'text-red-600' : 'text-green-600'}`;
-                }
+            const aiRec = document.getElementById('aiRecommendation');
+            document.getElementById('recText').innerText = recText;
+            aiRec.classList.remove('hidden');
 
-            } catch (error) {
-                console.error("Prediction Error:", error);
-                alert("Failed to get prediction from server.");
+            // Update Dashboard Spoilage Risk Card
+            const dashRisk = document.getElementById('dashSpoilageRisk');
+            if (dashRisk) {
+                dashRisk.textContent = isHighRisk ? 'High' : 'Low';
+                dashRisk.className = `text-3xl font-bold mt-2 ${isHighRisk ? 'text-red-600' : 'text-green-600'}`;
             }
         }
 
@@ -2718,7 +2709,7 @@
 
         async function fetchMarketData(crop, region) {
             try {
-                const response = await fetch(`/api/market?crop=${encodeURIComponent(crop)}&region=${encodeURIComponent(region)}`);
+                const response = await fetch(`http://localhost:3000/api/market?crop=${encodeURIComponent(crop)}&region=${encodeURIComponent(region)}`);
                 const data = await response.json();
                 return data;
             } catch (error) {
